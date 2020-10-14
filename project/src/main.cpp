@@ -10,31 +10,12 @@ int logic (const int* A, const int* B,const size_t &n,const size_t &m,const int 
             counter++;
             i++;
             j--;
-        } else {
-            if (n == m) {
-                if (A[i] + B[j] < k) {
-                    if (A[i + 1] + B[j] <= k) {
-                        i++;
-                        continue;
-                    }
-                }
-                j--;
-                continue;
-            }
-
-            if (n > m) {
-                if (A[i] + B[j] < k) {
-                    i++;
-                    continue;
-                }
-                j--;
-            } else {
-                if (A[i] + B[j] < k) {
-                    i++;
-                    continue;
-                }
-                j--;
-            }
+        }
+        if (A[i] + B[j] > k) {
+            j--;
+        }
+        if (A[i] + B[j] < k) {
+            i++;
         }
     }
     return counter;
@@ -86,9 +67,9 @@ void test() {
 
 }
 int main() {
-    test();
+    //test();
 
-    /*size_t n = 0;
+    size_t n = 0;
     std::cin >> n;
     int *A = new int[n];
     for (size_t i = 0; i < n; i++) {
@@ -107,7 +88,7 @@ int main() {
     std::cout << counter << std::endl;
 
     delete[] A;
-    delete[] B;*/
+    delete[] B;
 
     return 0;
 }
