@@ -1,0 +1,1 @@
+/usr/bin/c++   -Wall -Wextra -Werror  -g   CMakeFiles/a.out.dir/project/src/main.cpp.o  -o a.out 

@@ -1,0 +1,4 @@
+/home/naum/Загрузки/clion-2020.2.1/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=--coverage -DCMAKE_C_FLAGS=--coverage -G "CodeBlocks - Unix Makefiles" /home/naum/Algorithms
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/naum/Algorithms/cmake-build-debug-coverage

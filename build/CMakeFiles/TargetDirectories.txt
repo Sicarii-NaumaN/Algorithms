@@ -1,0 +1,3 @@
+/home/naum/Algorithms/build/CMakeFiles/rebuild_cache.dir
+/home/naum/Algorithms/build/CMakeFiles/edit_cache.dir
+/home/naum/Algorithms/build/CMakeFiles/a.out.dir
