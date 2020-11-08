@@ -1,6 +1,6 @@
 #include <iostream>
-#include <vector>
 #include <cassert>
+#include <algorithm>
 
 struct fruit {
     size_t mass = 0;
@@ -23,11 +23,169 @@ struct DefComparator {
     }
 };
 
+template <class T>
+class Vector {
+public:
+
+    typedef T* iterator;
+
+    Vector();
+    Vector(unsigned int size);
+    Vector(unsigned int size, const T &initial);
+    Vector(const Vector<T> &v);
+    ~Vector();
+
+    unsigned int capacity() const;
+    unsigned int size() const;
+    bool empty() const;
+    iterator begin();
+    iterator end();
+    T& front();
+    T& back();
+    void push_back(const T &value);
+    void pop_back();
+
+    void reserve(unsigned int capacity);
+    void resize(unsigned int size);
+
+    T& operator[](unsigned int index) const;
+    Vector<T>& operator=(const Vector<T> &);
+
+private:
+    unsigned int my_size;
+    unsigned int my_capacity;
+    T* buffer;
+};
+
+template<class T>
+Vector<T>::Vector() {
+    my_capacity = 0;
+    my_size = 0;
+    buffer = nullptr;
+}
+
+template<class T>
+Vector<T>::Vector(const Vector<T> & v) {
+    my_size = v.my_size;
+    my_capacity = v.my_capacity;
+    buffer = new T[my_size];
+    for (int i = 0; i < my_size; i++)
+        buffer[i] = v.buffer[i];
+}
+
+template<class T>
+Vector<T>::Vector(unsigned int size) {
+    my_capacity = size;
+    my_size = size;
+    buffer = new T[size];
+}
+
+template<class T>
+Vector<T>::Vector(unsigned int size, const T & initial) {
+    my_size = size;
+    my_capacity = size;
+    buffer = new T [size];
+    for (int i = 0; i < size; i++)
+        buffer[i] = initial;
+    T();
+}
+
+template<class T>
+Vector<T> & Vector<T>::operator=(const Vector<T> & v) {
+    delete[ ] buffer;
+    my_size = v.my_size;
+    my_capacity = v.my_capacity;
+    buffer = new T [my_size];
+    for (int i = 0; i < my_size; i++)
+        buffer[i] = v.buffer[i];
+    return *this;
+}
+
+template<class T>
+typename Vector<T>::iterator Vector<T>::begin() {
+    return buffer;
+}
+
+template<class T>
+typename Vector<T>::iterator Vector<T>::end() {
+    return buffer + size();
+}
+
+template<class T>
+T& Vector<T>::front() {
+    return buffer[0];
+}
+
+template<class T>
+T& Vector<T>::back() {
+    return buffer[size - 1];
+}
+
+template<class T>
+void Vector<T>::push_back(const T & v) {
+    if (my_size >= my_capacity)
+        reserve(my_size*2);
+    buffer [my_size++] = v;
+}
+
+template<class T>
+void Vector<T>::pop_back() {
+    my_size--;
+}
+
+template<class T>
+void Vector<T>::reserve(unsigned int capacity) {
+    if(buffer == nullptr) {
+        my_size = 0;
+        my_capacity = 0;
+    }
+    T * buf = new T [capacity];
+    assert(buf);
+    std::copy (buffer, buffer + my_size, buf);
+    my_capacity = capacity;
+    delete[] buffer;
+    buffer = buf;
+
+}
+
+template<class T>
+unsigned int Vector<T>::size() const {
+    return my_size;
+}
+
+template<class T>
+void Vector<T>::resize(unsigned int size) {
+    reserve(size);
+    this->size = size;
+}
+
+template<class T>
+T& Vector<T>::operator[](unsigned int index) const {
+    return buffer[index];
+}
+
+template<class T>
+unsigned int Vector<T>::capacity()const {
+    return my_capacity;
+}
+
+template<class T>
+Vector<T>::~Vector() {
+    delete[]buffer;
+}
+
+template<class T>
+bool Vector<T>::empty() const {
+    if (my_size == 0)
+        return true;
+    return false;
+}
+
 template <class T, class Compare = DefComparator<T>>
 class Heap {
 public:
     explicit Heap(Compare comp = Compare());
-    explicit Heap(const std::vector<T> &arr, Compare &comp = Compare());
+    explicit Heap(Vector<T> &arr, Compare &comp = Compare());
     //Heap(Heap&&);
 
     bool operator= (const Heap &rhs);
@@ -41,7 +199,7 @@ public:
 
     bool is_empty() const;
 
-    std::vector<T> buf;
+    Vector<T> buf;
     size_t &get_size();
     void sift_up(Compare comp = Compare(), size_t i = get_size());
     void sift_down(Compare comp = Compare(), size_t i = 0);
@@ -52,7 +210,7 @@ private:
 
 
 template<class T, class Compare>
-Heap<T, Compare>::Heap(const std::vector<T> &arr, Compare &comp) {
+Heap<T, Compare>::Heap(Vector<T> &arr, Compare &comp) {
     for(size_t i = 0; i < arr.size(); i++) {
         this->buf.push_back(arr[i]);
         this->sift_up(comp, buf.size());
@@ -183,7 +341,7 @@ size_t eating(Heap<T,Compare> &heap, size_t &strength) {
     }
     return result;
 }
-/*void test() {
+void test() {
     size_t res;
     DefComparator<fruit> comp;
     size_t strength;
@@ -191,7 +349,7 @@ size_t eating(Heap<T,Compare> &heap, size_t &strength) {
 
 
     val = {5};
-    std::vector<fruit> a;
+    Vector<fruit> a;
     a.reserve(5);
     for (size_t i = 0; i < 5; i++) {
         a.push_back(val);
@@ -202,7 +360,7 @@ size_t eating(Heap<T,Compare> &heap, size_t &strength) {
     assert(res == 4);
     std::cout << "OK\n";
 
-    std::vector<fruit> b;
+    Vector<fruit> b;
     b.reserve(1);
     b.push_back({2});
     Heap<fruit> heap2(b, comp);
@@ -211,7 +369,7 @@ size_t eating(Heap<T,Compare> &heap, size_t &strength) {
     assert(res == 2);
     std::cout << "OK\n";
 
-    std::vector<fruit> c;
+    Vector<fruit> c;
     c.reserve(1);
     c.push_back({11});
     Heap<fruit> heap3(c, comp);
@@ -221,7 +379,7 @@ size_t eating(Heap<T,Compare> &heap, size_t &strength) {
     std::cout << "OK\n";
 
     val = { 5};
-    std::vector<fruit> d;
+    Vector<fruit> d;
     for (size_t i = 0; i < 5; i++) {
         d.push_back(val);
         val.mass--;
@@ -234,7 +392,7 @@ size_t eating(Heap<T,Compare> &heap, size_t &strength) {
 
 
     val = {0,1};
-    std::vector<fruit> f;
+    Vector<fruit> f;
     f.reserve(10);
     f.push_back({1});
     f.push_back({ 9});
@@ -252,7 +410,7 @@ size_t eating(Heap<T,Compare> &heap, size_t &strength) {
     assert(res == 10);
     std::cout << "OK\n";
 
-    std::vector<fruit> g;
+    Vector<fruit> g;
     g.reserve(10);
     g.push_back({1});
     g.push_back({ 10});
@@ -272,13 +430,13 @@ size_t eating(Heap<T,Compare> &heap, size_t &strength) {
 
 
 
-}*/
+}
 
 int main() {
-    //test();
+    test();
     size_t n;
     std::cin >> n;
-    std::vector<fruit> fruits;
+    Vector<fruit> fruits;
     fruit val;
     for (size_t i = 0; i < n; i++) {
         std::cin >> val.mass;
