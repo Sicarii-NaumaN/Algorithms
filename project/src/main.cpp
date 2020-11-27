@@ -12,24 +12,23 @@ struct DefComparator {
 template <class T, class Compare = DefComparator<T>>
 int partition(T* arr, int l, int r, Compare comp = Compare()) {
     int start = l, end = r - 1, middle = l + (r-l)/2;
-    int pivot_index;
-    T pivot;
-    T max = std::max(arr[start], arr[middle]);
-    max = std::max(max, arr[end]);
-    T min = std::min(arr[start], arr[middle]);
-    min = std::min(min, arr[end]);
-
-    if (arr[start] != min && arr[start] != max) {
-        pivot = arr[start];
-        pivot_index = start;
-    } else if (arr[middle] != min && arr[middle] != max) {
-        pivot = arr[middle];
-        pivot_index = middle;
+    int pivot_index = 0;
+    T pivot = 0;
+    int buf1, buf2;
+    if (comp(arr[start], arr[middle])) {
+        buf1 = middle;
+        buf2 = start;
     } else {
-        pivot = arr[end];
-        pivot_index = end;
+        buf1 = start;
+        buf2 = middle;
     }
-
+    if (comp(arr[buf1], arr[end])) {
+        pivot_index = buf1;
+    } else if (comp(arr[end], arr[buf2])){
+        pivot_index = buf2;
+    } else
+        pivot_index = end;
+    pivot = arr[pivot_index];
     int i = l;
     int j = l-1;
 
@@ -53,17 +52,17 @@ void kth_elem(T* arr, int size, int index, Compare comp = Compare()) {
     int r = size;
 
     while(true) {
-        int result = partition(arr, l, r);
+        int result = partition(arr, l, r, comp);
         if (result == index) {
             return;
-        } else if (comp(result, index)) {
+        } else if (result < index) {
             l = result + 1;
         } else {
             r = result;
         }
     }
 }
-/*void test(){
+void test(){
     int key;
 
     int c[10] = {1, 3, 5, 7, 2, 4, 6, 1, 2, 3};
@@ -84,10 +83,11 @@ void kth_elem(T* arr, int size, int index, Compare comp = Compare()) {
     assert(a[key] == 10);
     std::cout << "OK\n";
 
-}*/
+}
 
 int main() {
     //test();
+    std::cout << "Эмин пидр!!!!!!!!!";
     int n;
     std::cin >> n;
 
