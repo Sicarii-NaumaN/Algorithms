@@ -13,7 +13,7 @@ int str_hash( const std::string& data, size_t& m )
 }
 
 static constexpr size_t BUCKETS_COUNT[] = {
-         8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072
+        8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072
 };
 
 template <class T> struct HashFunc;
@@ -32,9 +32,9 @@ private:
         Key key;
         int state;
         Node(const Key& key, const Key& state) :
-        key(key), state(0) {
+                key(key), state(EMPTY) {
         }
-        Node(): key(""), state(0) {
+        Node(): key(""), state(EMPTY) {
 
         }
         Node(const Node& rhs) {
@@ -44,14 +44,19 @@ private:
     };
 
 public:
+    enum states {
+        EMPTY,
+        NOT_FREE,
+        DELETED
+    };
     friend
     void test();
     HashSet(Hash hash = Hash()) :
-        buckets(0),
-        buckets_count(0),
-        items_count(0),
-        size_idx(0),
-        hash(hash)
+            buckets(0),
+            buckets_count(0),
+            items_count(0),
+            size_idx(0),
+            hash(hash)
     {
     }
     ~HashSet() {
@@ -62,7 +67,7 @@ public:
         }
         int idx = hash(key,buckets_count);//hash_value % buckets_count;
         for(size_t i = 0; i < buckets_count; ++i ) {
-            if (buckets[idx].state == 0 || buckets[idx].state == 3)
+            if (buckets[idx].state == EMPTY)
                 return nullptr;
             if (buckets[idx].key == key)
                 return &buckets[idx].key;
@@ -85,8 +90,9 @@ public:
         int idx = hash(key,buckets_count);
 
         for(size_t i = 0; i < buckets_count; ++i ) {
-            if (buckets[idx].state != 2) {
-                buckets[idx].state = 2;
+
+            if (buckets[idx].state != NOT_FREE) {
+                buckets[idx].state = NOT_FREE;
                 buckets[idx].key = key;
                 items_count++;
                 return true;
@@ -102,11 +108,11 @@ public:
         int idx = hash(key,buckets_count);//hash_value % buckets_count;
 
         for(size_t i = 0; i < buckets_count; ++i ) {
-            if (buckets[idx].state == 0) {
+            if (buckets[idx].state == EMPTY) {
                 return false;
             }
             if (buckets[idx].key == key) {
-                buckets[idx].state = 3;
+                buckets[idx].state = DELETED;
                 buckets[idx].key = "";
                 items_count--;
                 return true;
@@ -132,7 +138,7 @@ private:
         for (size_t i = 0; i < buckets_count; i++) {
             int idx = hash(buckets[i].key,new_buckets_count);
             for (size_t j = 0; j < new_buckets_count; j++){
-                if (new_buckets[idx].state != 2) {
+                if (new_buckets[idx].state != NOT_FREE) {
                     new_buckets[idx] = buckets[i];
                     break;
                 }
@@ -148,7 +154,7 @@ private:
     size_t size_idx;
     Hash hash;
 };
-void test() {
+/*void test() {
     std::string k = "";
     HashSet<std::string> h;
     bool res = false;
@@ -264,9 +270,9 @@ void test() {
     std::cout << "OKAY\n";
 
 
-}
+}*/
 int main() {
-    test();
+    //test();
     std::string key = "";
     char operation = '\0';
     HashSet<std::string> hset;
