@@ -72,6 +72,7 @@ public:
                 buf_tree = buf_tree->left;
             }
         }
+        nodes.push_back(node);
    }
     void traverse(Node *root, Operation func = Operation()) {
 
