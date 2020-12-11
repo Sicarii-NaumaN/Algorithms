@@ -1,19 +1,6 @@
 #include <iostream>
 #include <stack>
-
-template <class Key>
-class Node {
-public:
-    Key key;
-    Node* left;
-    Node* right;
-    Node(): key(0), left(nullptr), right(nullptr) {}
-    Node(const Key& key): left(nullptr), right(nullptr) {
-        this->key = key;
-    }
-    ~Node()=default;
-};
-
+#include <vector>
 
 
 template<class Key>
@@ -32,72 +19,86 @@ struct Func {
 };
 
 
-template<class Key, class Operation = Func<Key>>
-void Traverse(Node<Key> *root, Operation func = Operation()) {
 
-    std::stack<Node<Key>*> one;
-    std::stack<Node<Key>*> two;
+template<class Key, class Compare = DefComparator<Key>, class Operation = Func<Key>>
+class BinaryTree {
+private:
+    friend
+    int main();
+    class Node {
+    public:
+        Key key;
+        Node* left;
+        Node* right;
+        Node(): key(0), left(nullptr), right(nullptr) {}
+        Node(const Key& key): left(nullptr), right(nullptr) {
+            this->key = key;
+        }
+    };
+    std::vector<Node*> nodes;
+    Node* roots;
+public:
 
-    one.push(root);
-    while(!one.empty()) {
-        Node<Key>* node = one.top();
-        one.pop();
-        two.push(node);
-
-        if(node->left != nullptr)
-            one.push(node->left);
-
-        if(node->right != nullptr)
-            one.push(node->right);
+    explicit BinaryTree(BinaryTree::Node* &root):  roots(root) {
+        nodes.push_back(roots);
     }
-
-    while(!two.empty()) {
-        func(two.top()->key);
-        Node<Key>* p = two.top();
-        delete p;
-        two.pop();
+    ~BinaryTree() {
+        for (size_t i = 0; i < nodes.size(); i++) {
+            delete nodes[i];
+        }
     }
-}
+    void insert(Node* &in, Key &key, Compare comp = Compare()) {
+        if (in == nullptr) {
+            in = new Node(key);
+            nodes.push_back(in);
+            return;
+        }
+        Node* buf_tree = in;
+        Node* node = new Node(key);
+        for(;;) {
+            if (!comp(key, buf_tree->key)) {
+                if (buf_tree->right == nullptr) {
+                    buf_tree->right = node;
+                    break;
+                }
+                buf_tree = buf_tree->right;
 
-template<class Key>
-void Traverse2(Node<Key> *root) {
+            }
+            else {
+                if (buf_tree->left == nullptr) {
+                    buf_tree->left = node;
+                    break;
+                }
+                buf_tree = buf_tree->left;
+            }
+        }
+   }
+    void traverse(Node *root, Operation func = Operation()) {
 
-    std::stack<Node<Key>*> one;
-    std::stack<Node<Key>*> two;
+        std::stack<Node*> one;
+        std::stack<Node*> two;
 
-    one.push(root);
-    while(!one.empty()) {
-        Node<Key>* node = one.top();
-        one.pop();
-        two.push(node);
+        one.push(root);
+        while(!one.empty()) {
+            Node* node = one.top();
+            one.pop();
+            two.push(node);
 
-        if(node->left != nullptr)
-            one.push(node->left);
+            if(node->left != nullptr)
+                one.push(node->left);
 
-        if(node->right != nullptr)
-            one.push(node->right);
+            if(node->right != nullptr)
+                one.push(node->right);
+        }
+
+        while(!two.empty()) {
+            func(two.top()->key);
+            Node* p = two.top();
+            two.pop();
+        }
     }
+};
 
-    while(!two.empty()) {
-        std::cout << two.top()->key << " ";
-        Node<Key>* p = two.top();
-        two.pop();
-        delete p;
-    }
-}
-
-template<class Key, class Compare = DefComparator<Key>>
-void insert(Node<Key>* &in, Key &key, Compare comp = Compare())
-{
-    if (in == nullptr) {
-        in = new Node<Key>(key);
-        return;
-    }
-    if (!comp(key, in->key))
-        insert(in->right, key);
-    else
-        insert(in->left, key);
-}
 
 
 int main() {
@@ -106,12 +107,12 @@ int main() {
 
     int buf;
     std::cin >> buf;
-
-    auto *root = new Node<int>(buf);
+    BinaryTree<int>::Node *root = new BinaryTree<int>::Node(buf);
+    BinaryTree<int> tree(root);
     for (size_t i = 1; i < size; i++) {
         std::cin >> buf;
-        insert(root, buf);
+        tree.insert(root, buf);
     }
-    Traverse(root);
+    tree.traverse(root);
     return 0;
 }
