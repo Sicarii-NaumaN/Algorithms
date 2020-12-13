@@ -61,6 +61,7 @@ public:
                 buf_tree = buf_tree->left;
             }
         }
+        nodes.push_back(node);
     }
     size_t getHeight(const Node *root) { // возвращает количество слоев в дереве
 
@@ -133,20 +134,19 @@ public:
             delete nodes[i];
         }
     }
-    void insert(Node* &root,  Node* in, int counter , Compare comp = Compare()) {
-        counter++;
+    void insert(Node* &root,  Node* in, Compare comp = Compare()) {
         if (root == nullptr) {
             root = in;
+            nodes.push_back(in);
         } else if (comp(root->priority, in->priority)) {
             split(root, in->key, in->left, in->right);
             root = in;
-        } else if (comp(in->key, root->key)) {
-            insert(root->left, in, counter);
-        } else {
-            insert(root->right, in, counter);
-        }
-        if (counter == 1)
             nodes.push_back(in);
+        } else if (comp(in->key, root->key)) {
+            insert(root->left, in);
+        } else {
+            insert(root->right, in);
+        }
     }
     void split(Node* in, const Key data, Node* &l, Node*& r,
                Compare comp = Compare()) {
@@ -233,7 +233,6 @@ int main() {
     // инициализируем декартово дерево
     auto *root_treap = new DecTree<int, int>::Node(buf_key, buf_priority);
     DecTree<int, int> tree_treap(root_treap);
-    int counter = 0;
 
     for (size_t i = 1; i < size; i++) {
         std::cin >> buf_key;
@@ -241,13 +240,10 @@ int main() {
         tree_binary.insert(root_binary, buf_key);
 
         auto *node_dec = new DecTree<int, int>::Node(buf_key, buf_priority);
-        tree_treap.insert(root_treap, node_dec, counter);
+        tree_treap.insert(root_treap, node_dec);
     }
     int res1 = tree_binary.getMaxWidth(root_binary);
     int res2 = tree_treap.getMaxWidth(root_treap);
-
-    //deleteAll(root_binary);
-    //deleteAll(root_treap);
 
     std::cout << res2 - res1;
     return 0;
