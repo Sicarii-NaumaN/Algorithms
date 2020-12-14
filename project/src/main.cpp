@@ -1,295 +1,166 @@
 #include <iostream>
-#include <string>
 #include <cassert>
-#include <vector>
 
-
-int str_hash( const std::string& data, size_t& m )
-{
-    size_t hash = 0;
-    for( size_t i = 0; i != data.size(); i++ )
-        hash = ( hash * 2013 + data[i] ) % m;
-    return hash;
-}
-
-static constexpr size_t BUCKETS_COUNT[] = {
-         8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072
-};
-
-template <class T> struct HashFunc;
-
-template<> struct HashFunc<std::string> {
-    size_t operator()(const std::string& key, size_t& m) {
-        return str_hash(key, m);
+template <class T>
+struct DefComparator {
+    int operator()(const T& l, const T& r) {
+        if (l < r)
+            return -1;
+        if (l == r)
+            return 0;
+        return 1;
     }
 };
 
-template <class Key, class Hash = HashFunc<Key>>
-class HashSet {
+template <class Key, class Value, class Compare = DefComparator<Key>>
+class AVLTree {
 private:
-    static constexpr double max_load_factor = 0.75;
     struct Node {
         Key key;
-        int state;
-        Node(const Key& key, const Key& state) :
-        key(key), state(0) {
-        }
-        Node(): key(""), state(0) {
-
-        }
-        Node(const Node& rhs) {
-            key = rhs.key;
-            state = rhs.state;
-        }
+        Value value;
+        Node* left;
+        Node* right;
+        uint8_t height;
+        Node(const Key& k, const Value& v):
+             key(k), value(v), left(nullptr),
+             right(nullptr), height(1) {}
     };
 
 public:
-    friend
-    void test();
-    HashSet(Hash hash = Hash()) :
-        buckets(0),
-        buckets_count(0),
-        items_count(0),
-        size_idx(0),
-        hash(hash)
-    {
+    AVLTree(Compare comp = Compare()):
+            root(nullptr), nodes_count(0), comp(comp) {}
+    ~AVLTree()  {delete root;}
+    Value* find(const Key& key) {
+        return find_aux(key, root);
     }
-    ~HashSet() {
+    void insert(const Key& key_, const Value& val) {
+        root = insert_aux(key_, val, root);
     }
-    Key* find(const Key& key) {
-        if (buckets_count == 0) {
-            return nullptr;
-        }
-        int idx = hash(key,buckets_count);//hash_value % buckets_count;
-        for(size_t i = 0; i < buckets_count; ++i ) {
-            if (buckets[idx].state == 0 || buckets[idx].state == 3)
-                return nullptr;
-            if (buckets[idx].key == key)
-                return &buckets[idx].key;
-            idx = (idx + i+1)%buckets_count;
-        }
-        return nullptr;
+    void erase(const Key& key_) {
+        root = erase_aux(key_, root);
     }
-    bool insert (const Key& key) {
-        if (buckets_count == 0) {
-            grow();
-        }
-        if(find(key)) {
-            return false;
-        }
-        if (items_count != 0) {
-            if (static_cast<double>(buckets_count)* max_load_factor < items_count) {
-                grow();
-            }
-        }
-        int idx = hash(key,buckets_count);
-
-        for(size_t i = 0; i < buckets_count; ++i ) {
-            if (buckets[idx].state != 2) {
-                buckets[idx].state = 2;
-                buckets[idx].key = key;
-                items_count++;
-                return true;
-            }
-            idx = (idx + i +1)%buckets_count;
-        }
-        return false;
-    }
-    bool erase(const Key& key) {
-        if (buckets_count == 0) {
-            return false;
-        }
-        int idx = hash(key,buckets_count);//hash_value % buckets_count;
-
-        for(size_t i = 0; i < buckets_count; ++i ) {
-            if (buckets[idx].state == 0) {
-                return false;
-            }
-            if (buckets[idx].key == key) {
-                buckets[idx].state = 3;
-                buckets[idx].key = "";
-                items_count--;
-                return true;
-            }
-            idx =(idx + i+1)%buckets_count;
-        }
-        return false;
-    }
-
-
+    size_t size() {return nodes_count;}
 private:
-    void grow() {
-        size_t new_buckets_count = BUCKETS_COUNT[size_idx++];
-
-        int state = 0;
-        Key key = "";
-        std::vector<Node> new_buckets;
-
-        new_buckets.reserve(new_buckets_count);
-        for (size_t i = 0; i < new_buckets_count; i++) {
-            new_buckets.push_back( Node());
+    Value* find_aux(const Key& key, Node* node) {
+        if (!node)
+            return nullptr;
+        int res = comp(key, node->key);
+        if (res == -1) {
+            return find_aux(key, node->left);
+        } else if (res == 1) {
+            return find_aux(key, node->right);
         }
-        for (size_t i = 0; i < buckets_count; i++) {
-            int idx = hash(buckets[i].key,new_buckets_count);
-            for (size_t j = 0; j < new_buckets_count; j++){
-                if (new_buckets[idx].state != 2) {
-                    new_buckets[idx] = buckets[i];
-                    break;
-                }
-                idx = (idx + j+1)%new_buckets_count;
-            }
-        }
-        buckets = new_buckets;
-        buckets_count = new_buckets_count;
+        return &node->value;
     }
-    std::vector<Node> buckets;
-    size_t buckets_count;
-    double items_count;
-    size_t size_idx;
-    Hash hash;
-};
-void test() {
-    std::string k = "";
-    HashSet<std::string> h;
-    bool res = false;
-
-    // start
-    k = "buy";
-    res = h.insert(k);
-    assert(res == true);
-    std::cout << "OK\n";
-
-    k = "buy";
-    res = h.find(k);
-    assert(res == true);
-    std::cout << "OK\n";
-
-    k = "buy";
-    res = h.insert(k);
-    assert(res == false);
-    std::cout << "OK\n";
-
-    k = "kek";
-    res = h.find(k);
-    assert(res == false);
-    std::cout << "OK\n";
-
-    k = "kek";
-    res = h.erase(k);
-    assert(res == false);
-    std::cout << "OK\n";
-
-    k = "buy";
-    res = h.insert(k);
-    assert(res == false);
-    std::cout << "OK\n";
-
-    k = "kek";
-    res = h.find(k);
-    assert(res == false);
-    std::cout << "OK\n";
-
-    k = "lol";
-    res = h.find(k);
-    assert(res == false);
-    std::cout << "OK\n";
-
-    k = "lol";
-    res = h.insert(k);
-    assert(res == true);
-    std::cout << "OK\n";
-    /////////////////////////////////////////////////////////
-
-    k = "huh";
-    for (size_t i = 0; i < 10000; i++) {
-        if (i > 5000) {
-            res = h.erase(k);
-            assert(res == false);
+    Node* insert_aux(const Key& key,const Value& val, Node* node) {
+        if (!node) {
+            nodes_count++;
+            return new Node(key, val);
         }
-        if (i == 0) {
-            res = h.insert(k);
-            assert(res == true);
-        } else if (i == 1) {
-            res = h.find(k);
-            assert(res == true);
-        } else if (i > 1 && i < 5000) {
-            res = h.insert(k);
-            assert(res == false);
-        } else if (i == 5000){
-            res = h.erase(k);
-            assert(res == true);
+        int res = comp(key, node->key);
+        if (res == -1) {
+            node->left = insert_aux(key, val, node->left);
+        } else if (res == 1) {
+            node->right = insert_aux(key, val, node->right);
         }
-
+        return balance(node);
 
     }
-    std::cout << "OKKKK\n";
-    //////////////////////////////////////////
-    for (size_t i = 0; i < 90000; i++) {
-        k = "opg";
-        k = k + std::to_string(i);
-        res = h.insert(k);
-        assert(res == true);
-    }
-
-    //std::cout << "OKAY\n" << h.buckets[14614].key;
-    //for (size_t i = 0; i < h.buckets_count; i++) {
-//        std::cout << h.buckets[i].key << " " << h.buckets[i].state << std::endl;
-    //}
-    std::cout << h.buckets_count << std::endl;
-    for (size_t i = 0; i < 90000; i++) {
-        k = "opg";
-        k = k + std::to_string(i);
-        res = h.insert(k);
-        assert(res == false);
-
-    }
-    std::cout << "OKAY\n";
-    res = h.erase("opg0");
-    assert(res == true);
-    res = h.find("opg1");
-    assert(res == true);
-    std::cout << "OKAY\n";
-    for (size_t i = 89999; i > 0; i--) {
-        k = "opg";
-        k = k + std::to_string(i);
-        //std::cout << k << std::endl;
-        res = h.erase(k);
-        if (i == 0) {
-            assert(res == false);
-            continue;
-        }
-        //std::cout << i << std::endl;
-        assert(res == true);
-    }
-    std::cout << "OKAY\n";
-
-
-}
-int main() {
-    test();
-    std::string key = "";
-    char operation = '\0';
-    HashSet<std::string> hset;
-    while (std::cin >> operation >> key) {
-        bool res = false;
-        switch (operation) {
-            case '+':
-                res = hset.insert(key);
-                break;
-            case '-':
-                res = hset.erase(key);
-                break;
-            case '?':
-                res = (hset.find(key) != nullptr);
-                break;
-            default:
-                return 1;
-        }
-        if (res) {
-            std::cout << "OK\n";
+    Node* erase_aux(const Key& key, Node* node) {
+        if (!node)
+            return nullptr;
+        int res = comp(key, node->key);
+        if (res == -1) {
+            node->left = erase_aux(key, node->left);
+        } else if (res == 1) {
+            node->right = erase_aux(key, node->right);
         } else {
-            std::cout << "FAIL\n";
+            nodes_count--;
+            Node* left = node->left;
+            Node* right = node->right;
+            delete node;
+            if(!right)
+                return left;
+            Node* min_node = find_min(right);
+            min_node->right = remove_min(right);
+            min_node->left = left;
+            return balance(min_node);
         }
+        return balance(node);
     }
+    Node* find_min(Node* node) {
+        if (!node->left)
+            return node;
+        return find_min(node->left);
+    }
+    Node* remove_min(Node* node) {
+        if (!node->left)
+            return node->right;
+        node->left = remove_min(node->left);
+        return balance(node);
+
+
+    }
+    uint8_t height(Node* node) {
+        if (!node)
+            return 0;
+        return node->height;
+    }
+    void fix_height(Node* node) {
+        if (!node)
+            return;
+        node->height = std::max(height(node->left), height(node->right)) + 1;
+    }
+    uint8_t bfactor(Node* node) {
+        return height(node->right) - height(node->left);
+    }
+    Node* balance(Node* node) {
+        fix_height(node);
+        int bf = bfactor(node);
+        if (bf == 2) {
+            if (bfactor(node->right) < 0)
+                node->right = rotate_right(node->right);
+            return rotate_left(node);
+        } else if (bf == -2) {
+            if (bfactor(node->left) > 0)
+                node->left = rotate_left(node->left);
+            return rotate_right(node);
+        }
+        return node;
+    }
+    Node* rotate_left(Node *p) {
+        Node *q = p->right;
+        p->right = q->left;
+        q->left = p;
+        fix_height(p);
+        fix_height(q);
+        return q;
+    }
+    Node *rotate_right(Node  *p) {
+        Node *q = p->left;
+        p->left = q->right;
+        q->right = p;
+        fix_height(p);
+        fix_height(q);
+        return q;
+    }
+    Node* root;
+    size_t nodes_count;
+    Compare comp;
+};
+int main() {
+    AVLTree<int, int> tree;
+    for (size_t i = 0; i < 100; ++i) {
+        tree.insert(i, i);
+        assert(*tree.find(i) == i);
+    }
+    std::cout << "OK\n";
+    for (size_t i = 0; i< 100; ++i) {
+        assert(*tree.find(i) == i);
+        tree.erase(i);
+        assert(tree.find(i) == nullptr);
+    }
+    assert(tree.size() == 0);
+    std::cout << "OK\n";
     return 0;
 }
