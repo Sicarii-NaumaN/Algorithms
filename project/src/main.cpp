@@ -35,22 +35,29 @@ private:
             this->key = key;
         }
     };
-    std::vector<Node*> nodes;
     Node* roots;
 public:
 
     explicit BinaryTree(BinaryTree::Node* &root):  roots(root) {
-        nodes.push_back(roots);
     }
     ~BinaryTree() {
-        for (size_t i = 0; i < nodes.size(); i++) {
-            delete nodes[i];
+        std::stack<Node*> one;
+
+        one.push(roots);
+        while(!one.empty()) {
+            Node* node = one.top();
+            one.pop();
+            if(node->left != nullptr)
+                one.push(node->left);
+            if(node->right != nullptr)
+                one.push(node->right);
+            delete node;
         }
     }
     void insert(Node* &in, Key &key, Compare comp = Compare()) {
         if (in == nullptr) {
             in = new Node(key);
-            nodes.push_back(in);
+            //nodes.push_back(in);
             return;
         }
         Node* buf_tree = in;
@@ -72,7 +79,7 @@ public:
                 buf_tree = buf_tree->left;
             }
         }
-        nodes.push_back(node);
+        //nodes.push_back(node);
    }
     void traverse(Node *root, Operation func = Operation()) {
 
