@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stack>
 #include <vector>
+#include <queue>
 
 template<class Key>
 struct DefComparator {
@@ -24,22 +25,28 @@ private:
             this->key = key;
         }
     };
-    std::vector<Node*> nodes;
     Node* roots;
 public:
 
     explicit BinaryTree(BinaryTree::Node* &root):  roots(root) {
-        nodes.push_back(roots);
     }
     ~BinaryTree() {
-        for (size_t i = 0; i < nodes.size(); i++) {
-            delete nodes[i];
+        std::stack<Node*> one;
+
+        one.push(roots);
+        while(!one.empty()) {
+            Node* node = one.top();
+            one.pop();
+            if(node->left != nullptr)
+                one.push(node->left);
+            if(node->right != nullptr)
+                one.push(node->right);
+            delete node;
         }
     }
     void insert(Node* &in, Key &key, Compare comp = Compare()) {
         if (in == nullptr) {
             in = new Node(key);
-            nodes.push_back(in);
             return;
         }
         Node* buf_tree = in;
@@ -61,43 +68,35 @@ public:
                 buf_tree = buf_tree->left;
             }
         }
-        nodes.push_back(node);
     }
-    size_t getHeight(const Node *root) { // возвращает количество слоев в дереве
 
-        if (root == nullptr)
-            return 0;
-        size_t hLeft = 0, hRight = 0;
-        if (root->left != nullptr)
-            hLeft = getHeight(root->left);
+    size_t getMaxWidth(Node* root, Compare comp = Compare()) {
+            std::queue<Node *> queue;
+            Node *curr = root;
+            queue.push(curr);
+            int maxWidth = -1;
 
-        if (root->right)
-            hRight = getHeight(root->right);
+            while (!queue.empty()) {
+                int width = queue.size();
 
-        return std::max(hLeft, hRight) + 1;
-    }
-    size_t getWidth(const Node* in, const size_t& level) { // возвращает ширину слоя level дерева
-        if (in == nullptr)
-            return 0;
+                if (width > maxWidth) {
+                    maxWidth = width;
+                }
 
-        if (level == 0)
-            return 1;
+                for (int i = width; i > 0; --i) {
+                    curr = queue.front();
 
-        if (level > 0)
-            return getWidth(in->left, level - 1) + getWidth(in->right, level - 1);
+                    if (curr->left != nullptr) {
+                        queue.push(curr->left);
+                    }
 
-        return 0;
-    }
-    size_t getMaxWidth(const Node* root, Compare comp = Compare()) {
+                    if (curr->right != nullptr) {
+                        queue.push(curr->right);
+                    }
 
-        size_t height = getHeight(root);
-        size_t maxWidth = 0;
-        for (size_t i = 0; i < height; ++i) {
-            size_t width = getWidth(root, i);
-            if (comp(maxWidth, width))
-                maxWidth = width;
-        }
-
+                    queue.pop();
+                }
+            }
         return maxWidth;
     }
 };
