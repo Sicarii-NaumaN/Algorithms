@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <memory>
 
 template <class T>
 struct DefComparator {
@@ -24,7 +25,15 @@ private:
         int count;
         Node(const Key& k, const Value& v):
              key(k), value(v), left(nullptr),
-             right(nullptr), height(1), count(1) {}
+             right(nullptr), height(1), count(1) {};
+        Node& operator=(const Node& rhs) {
+            key = rhs.key;
+            value = rhs.value;
+            left = rhs.left;
+            right = rhs.right;
+            height = rhs.height;
+            count = rhs.count;
+        }
     };
 
 public:
@@ -93,59 +102,26 @@ private:
             delete node;
             if(!right)
                 return left;
-            //Node* min_node = find_remove_min(right);
-            //min_node->right = remove_min(right);
-            Node* min_node = right;
-            min_node->right = remove_min_(right, min_node);
+
+            Node *min_node;
+            Node* buf = find_remove_min(right, &min_node);
+            min_node->right = buf;
             min_node->left = left;
 
             return balance(min_node);
         }
         return balance(node);
     }
-    /*Node* find_remove_min(Node* node, Node* min) {
-        Node *buf = node;
-        Node *buf1 = node;
-        for (;;) {
-            if (!buf->left) {
-                break;
-            }
-            buf = buf->left;
-        }
-        min = buf;
 
-        for (;;) {
-            if (!buf1->left) {
-                min->right = buf1->right;
-                break;
-            }
-
-            buf1->left = buf1->left->left;
-            balance(buf1);
-        }
-        //
-        //min->right = node->right;
-        return min;
-    }*/
-    Node* find_min(Node* node) {
-        if (!node->left)
-            return node;
-        return find_min(node->left);
-    }
-    Node* remove_min_(Node* node, Node* min) {
+    Node* find_remove_min(Node* node, Node** min) {
         if (!node->left) {
-            min = node;
+            *min = node;
             return node->right;
         }
-        node->left = remove_min(node->left);
+        node->left = find_remove_min(node->left, min);
         return balance(node);
     }
-    Node* remove_min(Node* node) {
-        if (!node->left)
-            return node->right;
-        node->left = remove_min(node->left);
-        return balance(node);
-    }
+
     uint8_t height(Node* node) {
         if (!node)
             return 0;
