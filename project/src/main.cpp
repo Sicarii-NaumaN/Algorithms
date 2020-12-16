@@ -1,166 +1,104 @@
 #include <iostream>
 #include <cassert>
+#include <vector>
+#include <queue>
 
-template <class T>
-struct DefComparator {
-    int operator()(const T& l, const T& r) {
-        if (l < r)
-            return -1;
-        if (l == r)
-            return 0;
-        return 1;
+struct IGraph {
+    virtual ~IGraph() {
     }
+    virtual void AddEdge(int from, int to) = 0;
+    virtual int VertisesCount() const = 0;
+    virtual std::vector<int> GetNextVertices(int vertex) const = 0;
+    virtual std::vector<int> SetNextVertices(int vertex) const = 0;
 };
-
-template <class Key, class Value, class Compare = DefComparator<Key>>
-class AVLTree {
-private:
-    struct Node {
-        Key key;
-        Value value;
-        Node* left;
-        Node* right;
-        uint8_t height;
-        Node(const Key& k, const Value& v):
-             key(k), value(v), left(nullptr),
-             right(nullptr), height(1) {}
-    };
-
+class ListGraph: IGraph {
 public:
-    AVLTree(Compare comp = Compare()):
-            root(nullptr), nodes_count(0), comp(comp) {}
-    ~AVLTree()  {delete root;}
-    Value* find(const Key& key) {
-        return find_aux(key, root);
+    ListGraph(size_t vetices_count) {
+        graph.resize(vetices_count);
     }
-    void insert(const Key& key_, const Value& val) {
-        root = insert_aux(key_, val, root);
+    ListGraph(const IGraph&);
+    virtual ~ListGraph() {
     }
-    void erase(const Key& key_) {
-        root = erase_aux(key_, root);
+    void AddEdge(int from, int to) override {
+        graph[from].push_back(to);
     }
-    size_t size() {return nodes_count;}
+    virtual int VertisesCount() const {return graph.size();};
+    std::vector<int> GetNextVertices(int vertex) const {
+        std::vector<int> result;
+        result.resize(graph[vertex].size());
+        std::copy(graph[vertex].begin(), graph[vertex].end(), result.begin());
+        return result;
+    }
+    std::vector<int> SetNextVertices(int vertex) const {
+        std::vector<int> result;
+        for (size_t i = 0; i < graph.size(); ++i) {
+            for (auto child : graph[i]) {
+                if (child == vertex) {
+                    result.push_back(i);
+                    break;
+                }
+            }
+        }
+    }
+
 private:
-    Value* find_aux(const Key& key, Node* node) {
-        if (!node)
-            return nullptr;
-        int res = comp(key, node->key);
-        if (res == -1) {
-            return find_aux(key, node->left);
-        } else if (res == 1) {
-            return find_aux(key, node->right);
-        }
-        return &node->value;
-    }
-    Node* insert_aux(const Key& key,const Value& val, Node* node) {
-        if (!node) {
-            nodes_count++;
-            return new Node(key, val);
-        }
-        int res = comp(key, node->key);
-        if (res == -1) {
-            node->left = insert_aux(key, val, node->left);
-        } else if (res == 1) {
-            node->right = insert_aux(key, val, node->right);
-        }
-        return balance(node);
-
-    }
-    Node* erase_aux(const Key& key, Node* node) {
-        if (!node)
-            return nullptr;
-        int res = comp(key, node->key);
-        if (res == -1) {
-            node->left = erase_aux(key, node->left);
-        } else if (res == 1) {
-            node->right = erase_aux(key, node->right);
-        } else {
-            nodes_count--;
-            Node* left = node->left;
-            Node* right = node->right;
-            delete node;
-            if(!right)
-                return left;
-            Node* min_node = find_min(right);
-            min_node->right = remove_min(right);
-            min_node->left = left;
-            return balance(min_node);
-        }
-        return balance(node);
-    }
-    Node* find_min(Node* node) {
-        if (!node->left)
-            return node;
-        return find_min(node->left);
-    }
-    Node* remove_min(Node* node) {
-        if (!node->left)
-            return node->right;
-        node->left = remove_min(node->left);
-        return balance(node);
-
-
-    }
-    uint8_t height(Node* node) {
-        if (!node)
-            return 0;
-        return node->height;
-    }
-    void fix_height(Node* node) {
-        if (!node)
-            return;
-        node->height = std::max(height(node->left), height(node->right)) + 1;
-    }
-    uint8_t bfactor(Node* node) {
-        return height(node->right) - height(node->left);
-    }
-    Node* balance(Node* node) {
-        fix_height(node);
-        int bf = bfactor(node);
-        if (bf == 2) {
-            if (bfactor(node->right) < 0)
-                node->right = rotate_right(node->right);
-            return rotate_left(node);
-        } else if (bf == -2) {
-            if (bfactor(node->left) > 0)
-                node->left = rotate_left(node->left);
-            return rotate_right(node);
-        }
-        return node;
-    }
-    Node* rotate_left(Node *p) {
-        Node *q = p->right;
-        p->right = q->left;
-        q->left = p;
-        fix_height(p);
-        fix_height(q);
-        return q;
-    }
-    Node *rotate_right(Node  *p) {
-        Node *q = p->left;
-        p->left = q->right;
-        q->right = p;
-        fix_height(p);
-        fix_height(q);
-        return q;
-    }
-    Node* root;
-    size_t nodes_count;
-    Compare comp;
+    std::vector<std::vector<int>> graph;
 };
+void dfs_aux(const IGraph& graph, int vertex, std::vector<bool> &visited, void (*callback)(int v)) {
+    visited[vertex] = true;
+    callback(vertex);
+    for (auto child : graph.GetNextVertices(vertex)) {
+        if (!visited[child])
+            dfs_aux(graph, child, visited, callback);
+    }
+}
+
+void dfs(const IGraph& graph, void (*callback)(int v)) {
+    std::vector<bool> visited;
+    visited.resize(graph.VertisesCount(), false);
+
+    for (int i = 0; i< graph.VertisesCount(); ++i) {
+        if (!visited[i])
+            dfs_aux(graph, i, visited, callback);
+    }
+}
+
+void bfs(const IGraph& graph, void (*callback)(int v)) {
+    std::vector<bool> visited;
+    std::queue<int> queue;
+    visited.resize(graph.VertisesCount(), false);
+
+    for (int i = 0; i< graph.VertisesCount(); ++i) {
+        if (!visited[i]) {
+            queue.push(i);
+            visited[i] = true;
+            while (!queue.empty()) {
+                int vertex = queue.front();
+                queue.pop();
+                callback(vertex);
+                for (auto child : graph.GetNextVertices(vertex)) {
+                    if (!visited[child]) {
+                        queue.push(child);
+                        visited[child] = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
 int main() {
-    AVLTree<int, int> tree;
-    for (size_t i = 0; i < 100; ++i) {
-        tree.insert(i, i);
-        assert(*tree.find(i) == i);
-    }
-    std::cout << "OK\n";
-    for (size_t i = 0; i< 100; ++i) {
-        assert(*tree.find(i) == i);
-        tree.erase(i);
-        assert(tree.find(i) == nullptr);
-    }
-    assert(tree.size() == 0);
-    std::cout << "OK\n";
+    ListGraph graph(6);
+    graph.AddEdge(0,1);
+    graph.AddEdge(1,2);
+    graph.AddEdge(1,5);
+    graph.AddEdge(2,3);
+    graph.AddEdge(3,4);
+    graph.AddEdge(4,2);
+    /*dfs(graph, [](int  v)) {
+        std::
+
+    }*/
+
     return 0;
 }
