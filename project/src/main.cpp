@@ -21,9 +21,10 @@ private:
         Node* left;
         Node* right;
         uint8_t height;
+        int count;
         Node(const Key& k, const Value& v):
              key(k), value(v), left(nullptr),
-             right(nullptr), height(1) {}
+             right(nullptr), height(1), count(1) {}
     };
 
 public:
@@ -40,6 +41,17 @@ public:
         root = erase_aux(key_, root);
     }
     size_t size() {return nodes_count;}
+    Key kStat(int stat) {
+        Node *node = root;
+        while (stat != count(node->left)) {
+            if (count(node->left) < stat) {
+                stat -= count(node->left) + 1;
+                node = node->right;
+            } else
+                node = node->left;
+        }
+        return node->key;
+    }
 private:
     Value* find_aux(const Key& key, Node* node) {
         if (!node)
@@ -81,34 +93,71 @@ private:
             delete node;
             if(!right)
                 return left;
-            Node* min_node = find_min(right);
-            min_node->right = remove_min(right);
+            //Node* min_node = find_remove_min(right);
+            //min_node->right = remove_min(right);
+            Node* min_node = right;
+            min_node->right = remove_min_(right, min_node);
             min_node->left = left;
+
             return balance(min_node);
         }
         return balance(node);
     }
+    /*Node* find_remove_min(Node* node, Node* min) {
+        Node *buf = node;
+        Node *buf1 = node;
+        for (;;) {
+            if (!buf->left) {
+                break;
+            }
+            buf = buf->left;
+        }
+        min = buf;
+
+        for (;;) {
+            if (!buf1->left) {
+                min->right = buf1->right;
+                break;
+            }
+
+            buf1->left = buf1->left->left;
+            balance(buf1);
+        }
+        //
+        //min->right = node->right;
+        return min;
+    }*/
     Node* find_min(Node* node) {
         if (!node->left)
             return node;
         return find_min(node->left);
+    }
+    Node* remove_min_(Node* node, Node* min) {
+        if (!node->left) {
+            min = node;
+            return node->right;
+        }
+        node->left = remove_min(node->left);
+        return balance(node);
     }
     Node* remove_min(Node* node) {
         if (!node->left)
             return node->right;
         node->left = remove_min(node->left);
         return balance(node);
-
-
     }
     uint8_t height(Node* node) {
         if (!node)
             return 0;
         return node->height;
     }
+    int count(Node *node) {
+        return node ? node->count : 0;
+    }
     void fix_height(Node* node) {
         if (!node)
             return;
+        node->count = count(node->left) + count(node->right) + 1;
         node->height = std::max(height(node->left), height(node->right)) + 1;
     }
     uint8_t bfactor(Node* node) {
@@ -136,6 +185,7 @@ private:
         fix_height(q);
         return q;
     }
+
     Node *rotate_right(Node  *p) {
         Node *q = p->left;
         p->left = q->right;
@@ -144,23 +194,46 @@ private:
         fix_height(q);
         return q;
     }
+
     Node* root;
     size_t nodes_count;
     Compare comp;
+
 };
+
 int main() {
-    AVLTree<int, int> tree;
+    /*AVLTree<int, int> tree1;
     for (size_t i = 0; i < 100; ++i) {
-        tree.insert(i, i);
-        assert(*tree.find(i) == i);
+        tree1.insert(i, i);
+        assert(*tree1.find(i) == i);
     }
     std::cout << "OK\n";
     for (size_t i = 0; i< 100; ++i) {
-        assert(*tree.find(i) == i);
-        tree.erase(i);
-        assert(tree.find(i) == nullptr);
+        assert(*tree1.find(i) == i);
+        tree1.erase(i);
+        assert(tree1.find(i) == nullptr);
     }
-    assert(tree.size() == 0);
-    std::cout << "OK\n";
+    assert(tree1.size() == 0);
+    std::cout << "OK\n";*/
+
+    int n;
+    std::cin >> n;
+    int val, stat = 0;
+
+    auto *tree = new AVLTree<int, int>();
+
+    for (int i = 0; i < n; ++i) {
+        std::cin >> val;
+        if (val >= 0) {
+            tree->insert(val, val);
+        } else {
+            tree->erase(-1 * val);
+        }
+        std::cin >> stat;
+        std::cout << tree->kStat(stat) << " ";
+    }
+
+    delete tree;
     return 0;
 }
+
